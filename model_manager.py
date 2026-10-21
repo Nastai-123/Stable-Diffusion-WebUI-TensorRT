@@ -175,12 +175,25 @@ class ModelManager:
         available = self.all_models.get(self.cc, {})
         return available
 
+    def find_files_with_extension(self, root_folder, extension):
+        for dirpath, _, filenames in os.walk(root_folder):
+            for filename in filenames:
+                if filename.endswith(extension):
+                    yield os.path.join(dirpath, filename)
+
     def available_loras(self):
         available = {}
-        for p in os.listdir(TRT_MODEL_DIR):
-            if not p.endswith(".lora"):
-                continue
-            available[os.path.splitext(p)[0]] = os.path.join(TRT_MODEL_DIR, p)
+        for file_path in self.find_files_with_extension(LORA_MODEL_DIR, ".lora"):
+            available[os.path.splitext(os.path.basename(file_path))[0]] = os.path.join(LORA_MODEL_DIR, file_path)
+        for file_path in self.find_files_with_extension(TRT_MODEL_DIR, ".lora"):
+            available[os.path.splitext(os.path.basename(file_path))[0]] = os.path.join(TRT_MODEL_DIR, file_path)
+
+        # print(available)
+
+        # for p in os.listdir(TRT_MODEL_DIR):
+        #     if not p.endswith(".lora"):
+        #         continue
+        #     available[os.path.splitext(p)[0]] = os.path.join(TRT_MODEL_DIR, p)
 
         return available
 
@@ -209,6 +222,7 @@ class ModelManager:
                 idx.append(i)
 
         return valid_models, distances, idx
+
 
     def get_valid_models(
         self,

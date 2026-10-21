@@ -138,6 +138,7 @@ class TensorRTScript(scripts.Script):
                     "HIRES Fix resolution must be divisible by 64 in both dimensions. Please change the upscale factor or disable HIRES Fix."
                 )
 
+    
     def get_profile_idx(self, p, model_name: str, model_type: ModelType) -> (int, int):
         best_hr = None
 
@@ -145,6 +146,7 @@ class TensorRTScript(scripts.Script):
             hr_scale = 1
         else:
             hr_scale = p.hr_scale if p.enable_hr else 1
+
         (
             valid_models,
             distances,
@@ -201,7 +203,8 @@ class TensorRTScript(scripts.Script):
 
         # get lora from prompt
         _prompt = p.prompt
-        extra_networks = re.findall("\<(.*?)\>", _prompt)
+        no_comments = "\n".join(line.split("#")[0] for line in _prompt.splitlines())
+        extra_networks = re.findall("\<(.*?)\>", no_comments)
         loras = [net for net in extra_networks if net.startswith("lora")]
 
         # Avoid that extra networks will be loaded
@@ -220,14 +223,14 @@ class TensorRTScript(scripts.Script):
             return
 
         # Get pathes
-        print("Apllying LoRAs: " + str(loras))
+        print("Applying LoRAs: " + str(loras))
         available = modelmanager.available_loras()
         for lora in loras:
             lora_name, lora_scale = lora.split(":")[1:]
             lora_scales.append(float(lora_scale))
             if lora_name not in available:
                 raise Exception(
-                    f"Please export the LoRA checkpoint {lora_name} first from the TensorRT LoRA tab"
+                    f"Please export the LoRA checkpoint {lora_name} first from the TensorRT LoRA tab\nFound Loras: {str(available)}"
                 )
             lora_pathes.append(
                 available[lora_name]

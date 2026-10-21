@@ -233,6 +233,13 @@ class Engine:
 
         builder = network[0]
         config = builder.create_builder_config()
+
+
+        config.set_memory_pool_limit(
+            trt.MemoryPoolType.WORKSPACE,
+            8 * (1 << 30)
+        )
+
         config.progress_monitor = TQDMProgressMonitor()
 
         config.set_flag(trt.BuilderFlag.FP16) if fp16 else None

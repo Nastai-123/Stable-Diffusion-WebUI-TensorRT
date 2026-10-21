@@ -161,8 +161,12 @@ def export_lora_to_trt(lora_name, force_export):
     is_xl = shared.sd_model.is_sdxl
 
     available_lora_models = get_lora_checkpoints()
-    lora_name = lora_name.split(" ")[0]
-    lora_model = available_lora_models.get(lora_name, None)
+    # lora_name = lora_name.replace("\\", "\\\\")
+    # print(available_lora_models)
+    # print("############")
+    # print(lora_name)
+    # lora_name = lora_name.split(" ")[0]
+    lora_model = available_lora_models.get(lora_name)
     if lora_model is None:
         return f"## No LoRA model found for {lora_name}"
 
@@ -177,7 +181,7 @@ def export_lora_to_trt(lora_name, force_export):
 
     if not version.match(shared.sd_model):
         print(
-            f"""LoRA SD version ({version}) does not match the current SD version ({model_name}). 
+            f"""LoRA SD version ({version}) does not match the current SD version ({model_name}).
             Please ensure the correct SD Checkpoint is selected."""
         )
 
@@ -238,15 +242,35 @@ def get_version_from_filename(name):
         return "Unknown"
 
 
+def list_files_walk(start_path='.'):
+    filePaths = list()
+    for root, dirs, files in os.walk(start_path):
+        for file in files:
+            filePaths.append(os.path.join(root, file))
+            # print(os.path.join(root, file))
+    # print(filePaths)
+    return filePaths
+
+
+# def list_files_walk(start_path='.'):
+#     print(start_path)
+#     print("################################")
+#     files = [file for (rootPath, d, file) in os.walk(start_path)]
+#     print(files)
+#     return files[0]
+
+
 def get_lora_checkpoints():
     available_lora_models = {}
     allowed_extensions = ["pt", "ckpt", "safetensors"]
     candidates = [
         p
-        for p in os.listdir(cmd_opts.lora_dir)
-        if p.split(".")[-1] in allowed_extensions
+        for p in list_files_walk(cmd_opts.lora_dir)
+        # for p in os.listdir(cmd_opts.lora_dir)
+        if p.split(".")[-1] in allowed_extensions and "#" not in p
     ]
 
+    noConfigList = list()
     for filename in candidates:
         metadata = {}
         name, ext = os.path.splitext(filename)
@@ -275,23 +299,33 @@ def get_lora_checkpoints():
 
         else:
             version = SDVersion.Unknown
-            print(
-                "No config file found for {}. You can generate it in the LoRA tab.".format(
-                    name
-                )
-            )
+            logName = name.replace('\\', '/');
+            # noConfigList.append('/'.join(logName.split('/')[-3:]))
+            noConfigList.append(str(logName.split('/')[-1:]))
+
+            # print(
+            #     "TENSORTRT No config file for {}.".format(
+            #         name
+            #     )
+            # )
 
         available_lora_models[name] = {
             "filename": filename,
             "version": version,
             "base_model": base_model,
         }
+    # if len(noConfigList) != 0:
+    #     print(f"Tensor RT No config file for { f' - '.join(str(txt) for txt in noConfigList)}")
+
+    if len(noConfigList) != 0:
+        print(f"Tensor RT No config file count {len(noConfigList)}")
     return available_lora_models
 
 
 def get_valid_lora_checkpoints():
     available_lora_models = get_lora_checkpoints()
-    return [f"{k} ({v['version']})" for k, v in available_lora_models.items()]
+    # return [f"{k} ({v['version']})" for k, v in available_lora_models.items()]
+    return [k for k, v in available_lora_models.items()]
 
 
 def diable_export(version):
@@ -320,6 +354,7 @@ def diable_visibility(hide):
     num_outputs = 8
     out = [gr.update(visible=not hide) for _ in range(num_outputs)]
     return out
+
 
 
 def engine_profile_card():
@@ -364,8 +399,10 @@ def engine_profile_card():
 
     model_md = defaultdict(list)
     loras_md = {}
+
     for base_model, models in available_models.items():
         for i, m in enumerate(models):
+            # Original commented-out LoRA handling retained:
             # if m["config"].lora:
             #     loras_md[base_model] = m.get("base_model", None)
             #     continue
@@ -394,10 +431,12 @@ def engine_profile_card():
             model_md[base_model].append(profile_table)
 
     available_loras = modelmanager.available_loras()
+
     for lora, path in available_loras.items():
         loras_md[f"{lora}"] = ""
 
     return model_md, loras_md
+
 
 
 def on_ui_tabs():

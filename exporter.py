@@ -68,7 +68,8 @@ def get_refit_weights(
     for torch_name, initializer_name in weight_name_mapping.items():
         initializer_hash = initializer_hash_mapping[initializer_name]
         wt = state_dict[torch_name]
-
+        if str(wt.dtype).startswith("torch.float8"):
+            wt = wt.to(torch.float16)
         # get shape transform info
         initializer_shape, is_transpose = weight_shape_mapping[torch_name]
         if is_transpose:

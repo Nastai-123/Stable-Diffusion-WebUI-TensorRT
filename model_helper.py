@@ -175,7 +175,12 @@ class UNetModel(torch.nn.Module):
         initializers_mapped = set()
         for wt_name, wt in state_dict.items():
             # get weight hash
+            # wt = wt.cpu().detach().numpy().astype(np.float16)
+            if str(wt.dtype).startswith("torch.float8"):
+                wt = wt.to(torch.float16)
+
             wt = wt.cpu().detach().numpy().astype(np.float16)
+
             wt_hash = hash(wt.data.tobytes())
             wt_t_hash = hash(np.transpose(wt).data.tobytes())
 
